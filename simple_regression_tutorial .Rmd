@@ -1,0 +1,238 @@
+---
+title: "Simple Linear Regression"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+
+Simple Linear Regression is a simple method of predicting a quantitative *response* Y using a single *predictor* X. It assumes that the relationship between the *response* and *predictor* is approximately linear. Mathematically it is denoted by $Y = \beta_{0} + \beta_{1}.X + \epsilon$ 
+
+Where:  
+-  $\beta_{0}$ is the intercept    
+-  $\beta_{1}$ is the slope  
+-  $\epsilon$ is the non-zero mean error term  
+
+Together, these terms are known as the coefficients of the model. 
+
+In practice, $\beta_{0}$ and $\beta_{1}$ are unknown. So in order to use linear regression to make predictions, we must find *estimates* of the intercept $\hat{\beta_{0}}$ and slope $\hat{\beta_{1}}$. Note the ($\hat{}$) symbol dentoes an estimate value.  
+There are many ways to find the estimates of the coeficients of a linear model, but this tutorial will use the approach of **minimizing least squares**. 
+
+
+##Advertising Data 
+In this tutorial, we will take a look at an Advertising dataset to learn more about Simple Linear Regression. The Advertising dataset consists of a product's sales in 200 different markets, along with the adveritisng budget of that particular product in the 3 different medias: TV, radio & newspaper. 
+Here is the data we are going to work with:
+```{r}
+advertising <- read.csv(file="~/Downloads/Advertising.csv")
+advertising <- advertising[-1] #remove column 'X' that is not needed
+advertising
+```
+
+We are going to split the Advertising dataset into 2 parts - the training dataset, and the testing dataset in a 60:40 ratio. 
+```{r}
+
+set.seed(123)
+sample <- sample(c(TRUE, FALSE), nrow(advertising), replace = T, prob = c(0.6,0.4))
+train <- advertising[sample, ]
+test <- advertising[!sample, ]
+
+```
+
+So to describe the Simple Linear Regression equation in terms of the advertising data:    
+X = TV add spending (predictor/estimator)  
+Y = sales (response)  
+
+Then we can regress sales onto TV by fitting the model:     
+$$
+\begin{aligned}
+  sales \sim \beta_{0} + \beta_{1} . TV
+\end{aligned}
+$$ 
+
+So we can get estimates $\hat{\beta_{0}}$ and $\hat{\beta_{1}}$ using the training dataset, and use those estimates to predict future sales ($\hat{y}$) on the basis of a particular value of TV Advertising (X) using:     
+$$
+\begin{aligned}
+  \hat{y}= \hat{\beta_{0}} + \hat{\beta_{1}} . x
+\end{aligned}
+$$ 
+Note: the hat symbol is used to signify estimated values of the unkown coefficients. So $\hat{y}$ is the prediction of Y based on X=x. 
+
+
+
+##Estimating the Coefficients
+Let's fit a linear model to the training dataset and take a look at how the line of best fit is created using the least squares method. 
+
+
+```{r}
+fit1=lm(sales~TV,data=train)
+plot(sales~TV,train) 
+abline(fit1,col="red")
+attach(train)
+segments(TV, sales, TV, predict(fit1))
+
+```
+The least squares method is one of many ways to measure the *closeness* of the best-fit line to the data points.   
+The line segment from each data point to the best-fit line represents the error, or *residual*.  
+The Residual Sum of Squares, or RSS, is the sum of all the squares of the line segments (remember, these represent residuals).  
+
+In mathematical terms, let $\epsilon_{i}= y_{i}-\hat{y_{i}}$, where $y_{i}$ is the observed value, and $\hat{y_{i}}$ is the ith predicted response value on the ith value of X.   
+Then,  
+
+$$\begin{aligned}
+  RSS= \epsilon_{1}^{2} + \epsilon_{2}^{2} + ... \epsilon_{n}^{2} \\
+\end{aligned}$$
+ 
+
+$$\begin{aligned}
+  => RSS = (y_{1} - \hat{\beta_{0}} - \hat{\beta_{1}}x_{1}) + (y_{2} - \hat{\beta_{0}} - \hat{\beta_{1}}x_{2}) + ... + (y_{n} - \hat{\beta_{0}} - \hat{\beta_{1}}x_{n})\\
+  \end{aligned}$$
+So the least squares method tries to find a $\hat{\beta_{0}}$ and $\hat{\beta_{1}}$ that minimizes the RSS. In other words, the model tries to find an intercept $\hat{\beta_{0}}$ and slope $\hat{\beta_{1}}$ such that it's as close as possible to all 200 data points.    
+
+Using calculus on the RSS equation, we can come up with the least squares coefficient esimates for simple linear regression:    
+
+$$\begin{aligned}
+  \hat{\beta_{1}}=\frac{\sum_{i=1}^{n}(x_{i}-\hat{x})(y_{i}-\hat{y})}{\sum_{i=1}^{n}(x_{i}-\hat{x})^2}\\
+
+\end{aligned}$$  
+
+
+$$\begin{aligned}
+  \hat{\beta_{0}} = \overline{y} - \hat{\beta{1}}.\overline{x}
+\end{aligned}$$  
+
+Where $\overline{y} = \frac{1}{n}. \sum_{i=1}^{n}y_{i}$ and $\overline{x} = \frac{1}{n}. \sum_{i=1}^{n}x_{i}$ are the sample means.   
+
+
+
+
+Coming back to our linear model. Let's take a look at the coefficients it has come up with and what it means.
+```{r}
+(fit1)
+```
+Therefore in this case, our model takes the form of Y=6.76 + 0.05.X + $\epsilon$
+
+To put the equation into context with the data we are working with, what it means is that since the intercept is 6.76, the number of units sold when there is no TV advertising budget is 6760 units (remember we are working with units of 1000). However, with every $1000 spent on TV advertising, it will help sell 50 units more on average. 
+
+How do we know if these values are accurate? In other words, how do we know if the coefficient estimates ($\hat{\beta_{0}}$ & $\hat{\beta_{1}}$) produced by the linear model are close to the true values $\beta_{0}$ & $\beta{1}$? One way to know is by looking at the Standard Error of the intercept and slope coefficients. 
+
+The S.E of $\beta_{0}$ and $\beta{1}$ are computed by using the following euqtions:  
+
+$$\begin{aligned}
+    S.E(\hat{\beta_{1}}^2) = \frac{var(\epsilon)}{\sum_{i=1}^{n}(x_{i}-\overline{x})} 
+    \end{aligned}$$    
+
+$$\begin{aligned}
+    S.E(\hat{\beta_{0}}^2) = var(\epsilon) .  [\frac{1}{n}+\frac{\overline{x}^2}{\sum_{i=1}^{n}(x_{i}-\overline{x})^2}]  
+    \end{aligned}$$
+  
+  
+
+Standard Errors can be used to compute the **confidence intervals**. A 95% Confidence Interval is defined as a range of values that have a 95% probablity of containing the true unknown values of the coefficients. The range is determined by lower and upper limits computed from the sample data. For Linear Regression, the confidence intervals for $\beta_{0}$ & $\beta{1}$ approximately takes the form of:  
+
+
+$$\begin{aligned}
+    \hat{\beta_{1}} \pm 2.SE(\hat{\beta_{1}})
+    \end{aligned}$$    
+
+$$\begin{aligned}
+    \hat{\beta_{0}} \pm 2.SE(\hat{\beta_{0}})  
+    \end{aligned}$$  
+    
+And take the form:  
+
+$$\begin{aligned}
+    \left[\hat{\beta_{1}} - 2.SE(\hat{\beta_{1}}),\hat{\beta_{1}} + 2.SE(\hat{\beta_{1}})\right]
+    \end{aligned}$$  
+    
+    
+    
+Fortunately, the code in R to get the above information isn't as compicated: 
+ 
+```{r}
+confint(fit1)
+```
+  
+The 95% confidence interval for TV (B1) is between 0.04342678 & 0.05714057, also denoted as [0.043,0.057]. So in terms of the advertising data, it translates to an increase in 45 to 57 units of TVs sold for every $1000 spent on the TV ad budget. 
+
+
+
+##Accuracy of the Data:
+In this part, we are going to look at metrics that tell us the extent to which the model fits the data. Namely, we will look at two related quantities: **the residual standard error (RSE) and the $R^{2}$ value**. 
+
+There is an error term associated with every response, just as the mathematical equation of linear regressions tells us - $Y = \beta_{0} + \beta_{1} + \epsilon$  
+
+RSE is an estimate of the standard deviation of the error e. In other words, it's the average amount the response ($\hat{Y}$) will deviate from the true regression line. It is computed by:  
+$$\begin{aligned}
+    RSE=\sqrt[]{\frac{1}{n-2}. \sum_{i=1}^{n}(y_{i}-\hat{y_{i}})^2}\\  
+    \end{aligned}$$
+    
+$$\begin{aligned}
+    RSE=\sqrt[]{\frac{1}{n-2}. RSS}\\  
+    \end{aligned}$$
+
+
+The RSE can be computed on R by the following code:
+```{r}
+sigma(fit1)
+```
+
+ The RSE value is 3.2. But what does this singify in terms of the advertising data? What it means is that, even if we knew the unknown values of $\beta_{0}$ and $\beta{1}$ of the true regression line, any prediction of sales on the basis of TV add spending would be off by 3200 units on average. 
+Isn't that a significant error? It depends on the context of the problem, to find out the percentage of the error we divide the RSE over the mean value of sales like so:
+```{r}
+sigma(fit1)/mean(train$sales)
+```
+The percentage error is 22%. The RSE value measures absolute lack of fit of our model to the data. But since it's measured in terms of Y units, you might not be able to tell what a *good* RSE value of a model might be. 
+
+This is why we look at $R^2$ metric. It as an alternative measure of fit. It represents the proportion of variance explained and so takes on a value between 0 and 1, and is independant of the scale of Y.   
+$R^2$ is simply a function of the **residual sum of squares (RSS) and total sum of squares (TSS)**. It is computed by:    
+
+$$\begin{aligned}
+    R^2 = \frac{TSS-RSS}{TSS} =  1 - \frac{RSS}{TSS} 
+    \end{aligned}$$
+
+Where, TSS = $\sum_{i=1}^{n}(y_{i}-\overline{y})^2$ is the **total sum of squares**
+
+
+
+To compute $R^2$ using R code:
+```{r}
+summary(fit1)
+```
+The $R^2$ statistic is given at the bottom, in this case it is 0.63 which is close to 1, so just under two-thirds of the variance in sales is explained by linear regression on TV. 
+However, it can stil be challenging to determine what a good $R^2$ value (even though it is a value independant of Y units) as it depends on the application/context of the problem.  
+
+
+In the case of simple linear regression for one predictor, $R^2$ = $r^2$, where $r^2$ is a value that represents the correlation between X & Y.
+
+
+
+#Making Predictions
+
+Earlier in the tutorial we split the advertising dataset into training and test datasets. So far, we have been fitting the model to the training datasets, and have looked at the metrics that suggest the fit has been okay. Let's go ahead and see how the model fitted to the training datasets fares on predicting the sales of the test dataset. 
+
+```{r}
+test_prediction=predict(fit1, newdata=test,interval = 'confidence')
+test_prediction
+```
+  
+In order to evalutate the performance of our simple linear regression model on the advertising dataset, we will look at a metric called the Mean Squared Error, or MSE. It is used to quantify the extent to which the predicted response value for a given observation is close to the true response value of that observation. It is computed by:  
+
+$$\begin{aligned}
+    MSE = \frac{1}{n}.\sum_{i=1}^{n}(y_{i}-\hat{y_{i}})^2  
+    \end{aligned}$$
+    
+  
+Ideally, you want the MSE to be as low as possible for the test dataset (unseen data).  
+
+We can compute the training MSE and test MSE like so:  
+```{r}
+train_MSE = mean(fit1$residuals^2)
+test_MSE = mean((test$sales - predict.lm(fit1, test)) ^ 2)
+
+print(train_MSE)
+print(test_MSE)
+```
+
+#Conclusion:
+Simple Linear Regression might not be as sexy as the other statistical models, but it's very important to understand because it is actually the basis for many other models out there. A lot of models are generalizations or extensions of linear regression. It might be a simple approach, but it can prove to be more effective than complex models in certain situations.
+
